@@ -39,4 +39,11 @@ public class ExceptionHandlerAdvice extends RuntimeException{
       });
       return new Result(false, StatusCode.BAD_REQUEST, "입력 값 중 빠진게 있습니다.(모두 입력하세요)", errorMap);
    }
+
+   @ExceptionHandler(Exception.class)
+   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+   public Result otherExceptionHandler(Exception ex) {
+         return new Result(false, StatusCode.INTERNAL_SERVER_ERROR, ex.getMessage());
+   }
+
 }

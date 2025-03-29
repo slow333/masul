@@ -2,13 +2,14 @@ package kr.masul.system;
 
 import kr.masul.artifact.Artifact;
 import kr.masul.artifact.ArtifactRepository;
+import kr.masul.user.MaUser;
+import kr.masul.user.UserRepository;
 import kr.masul.wizard.Wizard;
 import kr.masul.wizard.WizardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Component
@@ -17,6 +18,7 @@ public class DBDataInitializer implements CommandLineRunner {
 
     private final ArtifactRepository artifactRepository;
     private final WizardRepository wizardRepository;
+    private final UserRepository userRepository;
     private final IdWorker idWorker;
 
     @Override
@@ -94,6 +96,35 @@ public class DBDataInitializer implements CommandLineRunner {
         w3.setName("SpiderMan");
         w3.setBirthday(LocalDateTime.of(2001, 7, 1, 6, 10));
         w3.addArtifact(a5);
+
+        MaUser u = new MaUser();
+        u.setUsername("admin");
+        u.setPassword("321");
+        u.setEnabled(true);
+        u.setRoles("admin user");
+
+        MaUser u1 = new MaUser();
+        u1.setUsername("kim");
+        u1.setPassword("123");
+        u1.setEnabled(true);
+        u1.setRoles("user");
+
+        MaUser u2 = new MaUser();
+        u2.setUsername("woo");
+        u2.setPassword("123");
+        u2.setEnabled(true);
+        u2.setRoles("user");
+
+        MaUser u3 = new MaUser();
+        u3.setUsername("jin");
+        u3.setPassword("123");
+        u3.setEnabled(false);
+        u3.setRoles("user");
+
+        userRepository.save(u);
+        userRepository.save(u1);
+        userRepository.save(u2);
+        userRepository.save(u3);
 
         this.wizardRepository.save(w1);
         this.wizardRepository.save(w2);
