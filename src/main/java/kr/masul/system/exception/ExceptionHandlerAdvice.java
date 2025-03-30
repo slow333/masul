@@ -5,6 +5,8 @@ import kr.masul.system.Result;
 import kr.masul.system.StatusCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,8 +25,15 @@ public class ExceptionHandlerAdvice extends RuntimeException{
 
    @ExceptionHandler(ObjectNotFoundException.class)
    @ResponseStatus(HttpStatus.NOT_FOUND)
-   public Result artifactNotFoundExceptionHnadler(ObjectNotFoundException ex) {
+   public Result artifactNotFoundExceptionHandler(ObjectNotFoundException ex) {
       return new Result(false, StatusCode.NOT_FOUND, ex.getMessage());
+   }
+
+   @ExceptionHandler({UsernameNotFoundException.class, BadCredentialsException.class})
+   @ResponseStatus(HttpStatus.UNAUTHORIZED)
+   public Result usernameNotFoundExceptionHandler(Exception ex) {
+      return new Result(false, StatusCode.UNAUTHORIZED,
+              "username or password is incorrect",ex.getMessage());
    }
 
    @ExceptionHandler(MethodArgumentNotValidException.class)

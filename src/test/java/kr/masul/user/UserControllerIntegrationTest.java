@@ -28,9 +28,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("User Integration test")
 class UserControllerIntegrationTest {
+
    @Autowired
    ObjectMapper objectMapper;
 
@@ -44,6 +45,7 @@ class UserControllerIntegrationTest {
    void setUp() {   }
 
    @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testFindByIdSuccess() throws Exception {
       mockMvc.perform(get(url + "/users/2").accept(MediaType.APPLICATION_JSON))
               .andExpect(jsonPath("$.flag").value(true))
@@ -102,6 +104,7 @@ class UserControllerIntegrationTest {
    }
 
    @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testUpdateSuccess() throws Exception {
       // Given
       MaUser update = new MaUser();
@@ -151,6 +154,7 @@ class UserControllerIntegrationTest {
    }
 
    @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testDeleteSuccess() throws Exception {
       mockMvc.perform(delete(url + "/users/2")
                       .accept(MediaType.APPLICATION_JSON))
