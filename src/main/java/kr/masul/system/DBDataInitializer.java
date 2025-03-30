@@ -4,6 +4,7 @@ import kr.masul.artifact.Artifact;
 import kr.masul.artifact.ArtifactRepository;
 import kr.masul.user.MaUser;
 import kr.masul.user.UserRepository;
+import kr.masul.user.UserService;
 import kr.masul.wizard.Wizard;
 import kr.masul.wizard.WizardRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class DBDataInitializer implements CommandLineRunner {
 
     private final ArtifactRepository artifactRepository;
     private final WizardRepository wizardRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final IdWorker idWorker;
 
     @Override
@@ -99,7 +100,7 @@ public class DBDataInitializer implements CommandLineRunner {
 
         MaUser u = new MaUser();
         u.setUsername("admin");
-        u.setPassword("321");
+        u.setPassword("123456");
         u.setEnabled(true);
         u.setRoles("admin user");
 
@@ -121,10 +122,10 @@ public class DBDataInitializer implements CommandLineRunner {
         u3.setEnabled(false);
         u3.setRoles("user");
 
-        userRepository.save(u);
-        userRepository.save(u1);
-        userRepository.save(u2);
-        userRepository.save(u3);
+        userService.add(u);
+        userService.add(u1);
+        userService.add(u2);
+        userService.add(u3);
 
         this.wizardRepository.save(w1);
         this.wizardRepository.save(w2);
