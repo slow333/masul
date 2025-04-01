@@ -5,6 +5,7 @@ import kr.masul.artifact.Artifact;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
 import org.hamcrest.Matchers;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -18,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,11 +29,13 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @DisplayName("Wizard Integration test")
 @Tag("Integration")
 class WizardControllerIntegrationTest {
@@ -44,9 +49,21 @@ class WizardControllerIntegrationTest {
    @Value("${api.base-url}")
    String url;
 
+   String token;
+
+   @BeforeEach
+   void setUp() throws Exception {
+      ResultActions admin = mockMvc.perform(post(url + "/users/login")
+              .with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      token = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+   }
+
    @Test
    void testFindByIdSuccess() throws Exception {
-      mockMvc.perform(get(url+"/wizards/2").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url+"/wizards/2").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Find Success"))
@@ -56,7 +73,7 @@ class WizardControllerIntegrationTest {
 
    @Test
    void testFindByIdNotFound() throws Exception {
-      mockMvc.perform(get(url+"/wizards/5").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url+"/wizards/5").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find wizard with id 5"))
@@ -66,7 +83,7 @@ class WizardControllerIntegrationTest {
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testFindAllSuccess() throws Exception {
-      mockMvc.perform(get(url + "/wizards").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url + "/wizards").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Find all Success"))
@@ -82,7 +99,7 @@ class WizardControllerIntegrationTest {
       String json = objectMapper.writeValueAsString(dto);
 
       // When and Then
-      mockMvc.perform(post(url+"/wizards").accept(MediaType.APPLICATION_JSON)
+      mockMvc.perform(post(url+"/wizards").accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
@@ -102,7 +119,7 @@ class WizardControllerIntegrationTest {
       String json = objectMapper.writeValueAsString(dto);
 
       // When and Then
-      mockMvc.perform(put(url+"/wizards/2").accept(MediaType.APPLICATION_JSON)
+      mockMvc.perform(put(url+"/wizards/2").accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
@@ -120,7 +137,7 @@ class WizardControllerIntegrationTest {
 
       String json = objectMapper.writeValueAsString(dto);
       // When and Then
-      mockMvc.perform(put(url+"/wizards/6").accept(MediaType.APPLICATION_JSON)
+      mockMvc.perform(put(url+"/wizards/6").accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
@@ -130,7 +147,7 @@ class WizardControllerIntegrationTest {
 
    @Test
    void testDeleteSuccess() throws Exception {
-      mockMvc.perform(delete(url+"/wizards/2").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(delete(url+"/wizards/2").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Delete Success"))
@@ -139,7 +156,7 @@ class WizardControllerIntegrationTest {
 
    @Test
    void testDeleteNotFound() throws Exception {
-      mockMvc.perform(delete(url+"/wizards/6").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(delete(url+"/wizards/6").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find wizard with id 6"))
@@ -150,7 +167,7 @@ class WizardControllerIntegrationTest {
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testAssignArtifactSuccess() throws Exception {
       // When and Then
-      mockMvc.perform(put(url+"/wizards/2/artifacts/12306").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(put(url+"/wizards/2/artifacts/12306").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Assign artifact Success"))
@@ -159,7 +176,7 @@ class WizardControllerIntegrationTest {
 
    @Test
    void testAssignArtifactNotFoundWizard() throws Exception {
-      mockMvc.perform(put(url+"/wizards/6/artifacts/12306").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(put(url+"/wizards/6/artifacts/12306").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find wizard with id 6"))
@@ -167,7 +184,7 @@ class WizardControllerIntegrationTest {
    }
    @Test
    void testAssignArtifactNotFoundArtifact() throws Exception {
-      mockMvc.perform(put(url+"/wizards/2/artifacts/12309").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(put(url+"/wizards/2/artifacts/12309").accept(MediaType.APPLICATION_JSON).header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find artifact with id 12309"))

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
 import org.hamcrest.Matchers;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +27,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @DisplayName("User Integration test")
 class UserControllerIntegrationTest {
 
@@ -41,13 +46,21 @@ class UserControllerIntegrationTest {
    @Value("${api.base-url}")
    String url;
 
+   String token;
    @BeforeEach
-   void setUp() {   }
+   void setUp() throws Exception {
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("admin", "123456")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      token = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+   }
 
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testFindByIdSuccess() throws Exception {
-      mockMvc.perform(get(url + "/users/2").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url + "/users/2").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Find Success"))
@@ -58,7 +71,8 @@ class UserControllerIntegrationTest {
 
    @Test
    void testFindByIdNotFound() throws Exception {
-      mockMvc.perform(get(url + "/users/8").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url + "/users/8").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find user with id 8"))
@@ -68,7 +82,8 @@ class UserControllerIntegrationTest {
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testFindAllSuccess() throws Exception {
-      mockMvc.perform(get(url + "/users").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url + "/users").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Find all Success"))
@@ -91,7 +106,7 @@ class UserControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(post(url + "/users")
-                      .accept(MediaType.APPLICATION_JSON)
+                      .accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(json))
               .andExpect(jsonPath("$.flag").value(true))
@@ -118,7 +133,7 @@ class UserControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(put(url + "/users/2")
-                      .accept(MediaType.APPLICATION_JSON)
+                      .accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(json))
               .andExpect(jsonPath("$.flag").value(true))
@@ -144,7 +159,7 @@ class UserControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(put(url + "/users/7")
-                      .accept(MediaType.APPLICATION_JSON)
+                      .accept(MediaType.APPLICATION_JSON).header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(json))
               .andExpect(jsonPath("$.flag").value(false))
@@ -156,7 +171,7 @@ class UserControllerIntegrationTest {
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testDeleteSuccess() throws Exception {
-      mockMvc.perform(delete(url + "/users/2")
+      mockMvc.perform(delete(url + "/users/2").header("Authorization", token)
                       .accept(MediaType.APPLICATION_JSON))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
@@ -165,7 +180,7 @@ class UserControllerIntegrationTest {
    }
    @Test
    void testDeleteFail() throws Exception {
-      mockMvc.perform(delete(url + "/users/8")
+      mockMvc.perform(delete(url + "/users/8").header("Authorization", token)
                       .accept(MediaType.APPLICATION_JSON))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
