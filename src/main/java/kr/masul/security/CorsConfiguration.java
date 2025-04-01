@@ -12,10 +12,10 @@ public class CorsConfiguration {
    public WebMvcConfigurer corsConfigurer() {
       return new WebMvcConfigurer(){
          public void addCorsMappings(CorsRegistry registry) {
-            registry.addMapping("/**")
-                    .allowedOrigins("*")
-                    .allowedMethods("GET","POST","PUT","DELETE","OPTIONS","HEAD","PATCH")
-                    .allowedHeaders("*");
+            registry.addMapping("/**");
+//                    .allowedOrigins("*")
+//                    .allowedMethods("GET","POST","PUT","DELETE","OPTIONS","HEAD","PATCH")
+//                    .allowedHeaders("*");
          }
       };
    }

@@ -3,7 +3,9 @@ package kr.masul.artifact;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
+import netscape.javascript.JSObject;
 import org.hamcrest.Matchers;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +15,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,11 +30,14 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @DisplayName("Artifact Integration test")
 class ArtifactControllerIntegrationTest {
 
@@ -40,6 +49,16 @@ class ArtifactControllerIntegrationTest {
 
    @Value("${api.base-url}")
    String url;
+
+   String token;
+   @BeforeEach
+   void setup() throws Exception {
+      ResultActions adminResult = mockMvc.perform(post(url + "/users/login").with(httpBasic("admin","123456")));
+      MvcResult mvcResult = adminResult.andDo(print()).andReturn();
+      String string = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject =new JSONObject(string);
+      token = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+   }
 
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
@@ -83,6 +102,7 @@ class ArtifactControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(post(url + "/artifacts").accept(MediaType.APPLICATION_JSON)
+             .header("Authorization", token)
               .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
@@ -101,6 +121,7 @@ class ArtifactControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(put(url + "/artifacts/12302").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
@@ -121,6 +142,7 @@ class ArtifactControllerIntegrationTest {
 
       // When and Then
       mockMvc.perform(put(url + "/artifacts/12309").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token)
                       .contentType(MediaType.APPLICATION_JSON).content(json))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
@@ -130,7 +152,8 @@ class ArtifactControllerIntegrationTest {
 
    @Test
    void testDeleteSuccess() throws Exception {
-      mockMvc.perform(delete(url+"/artifacts/12302").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(delete(url+"/artifacts/12302").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Delete Success"))
@@ -139,7 +162,8 @@ class ArtifactControllerIntegrationTest {
    }
    @Test
    void testDeleteNotFound() throws Exception {
-      mockMvc.perform(delete(url+"/artifacts/12309").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(delete(url+"/artifacts/12309").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(false))
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find artifact with id 12309"))
