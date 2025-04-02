@@ -3,18 +3,19 @@ package kr.masul.system;
 import kr.masul.artifact.Artifact;
 import kr.masul.artifact.ArtifactRepository;
 import kr.masul.user.MaUser;
-import kr.masul.user.UserRepository;
 import kr.masul.user.UserService;
 import kr.masul.wizard.Wizard;
 import kr.masul.wizard.WizardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
+@Profile("dev")
 public class DBDataInitializer implements CommandLineRunner {
 
     private final ArtifactRepository artifactRepository;
