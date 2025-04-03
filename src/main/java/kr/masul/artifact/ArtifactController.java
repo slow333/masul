@@ -1,5 +1,6 @@
 package kr.masul.artifact;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Valid;
 import kr.masul.system.Result;
 import kr.masul.system.StatusCode;
@@ -18,10 +19,14 @@ public class ArtifactController {
     private final ArtifactService artifactService;
     private final ArtifactToDto artifactToDto;
     private final ArtifactToEntity artifactToEntity;
+    private final MeterRegistry meterRegistry;
 
     @GetMapping("/{artifactId}")
     public Result findById(@PathVariable String artifactId) {
         Artifact artifact = artifactService.findById(artifactId);
+        meterRegistry.counter("artifact.id." + artifactId).increment();
+//        meterRegistry.gauge("artifact_count", 13);
+//        meterRegistry.timer("artifact_findById", "timer");
         ArtifactDto artifactDto = artifactToDto.convert(artifact);
         return new Result(true, StatusCode.SUCCESS, "Find Success", artifactDto);
     }
