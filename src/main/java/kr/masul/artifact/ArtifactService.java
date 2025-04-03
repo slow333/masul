@@ -1,5 +1,6 @@
 package kr.masul.artifact;
 
+import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import kr.masul.system.IdWorker;
 import kr.masul.system.exception.ObjectNotFoundException;
@@ -22,6 +23,7 @@ public class ArtifactService {
 
    }
 
+   @Timed("동작 시간 측정용") // 동작하지 않음
    public List<Artifact> findAll() {
       return artifactRepository.findAll();
    }

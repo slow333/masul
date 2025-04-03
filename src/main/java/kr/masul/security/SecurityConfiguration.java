@@ -10,6 +10,7 @@ import kr.masul.system.exception.CustomBasicAuthEntryPoint;
 import kr.masul.system.exception.CustomBearerTokenAccessDeniedHandler;
 import kr.masul.system.exception.CustomBearerTokenAuthEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -59,13 +60,15 @@ public class SecurityConfiguration {
    @Bean
    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
       http.authorizeHttpRequests(request -> request
-        .requestMatchers(HttpMethod.GET,url + "/artifacts/**").permitAll()
-        .requestMatchers(HttpMethod.GET, url + "/users/**").hasAuthority("ROLE_admin")
-        .requestMatchers(HttpMethod.POST, url + "/users").hasAuthority("ROLE_admin")
-        .requestMatchers(HttpMethod.PUT, url + "/users/**").hasAuthority("ROLE_admin")
-        .requestMatchers(HttpMethod.DELETE, url + "/users/**").hasAuthority("ROLE_admin")
-        .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
-        .anyRequest().authenticated()
+           .requestMatchers(HttpMethod.GET,url + "/artifacts/**").permitAll()
+           .requestMatchers(HttpMethod.GET, url + "/users/**").hasAuthority("ROLE_admin")
+           .requestMatchers(HttpMethod.POST, url + "/users").hasAuthority("ROLE_admin")
+           .requestMatchers(HttpMethod.PUT, url + "/users/**").hasAuthority("ROLE_admin")
+           .requestMatchers(HttpMethod.DELETE, url + "/users/**").hasAuthority("ROLE_admin")
+           .requestMatchers(EndpointRequest.to("health","info","prometheus")).permitAll()
+           .requestMatchers(EndpointRequest.toAnyEndpoint().excluding("health","info","prometheus")).hasAuthority("ROLE_admin")
+           .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
+           .anyRequest().authenticated()
       )
         .httpBasic(httpBasic -> httpBasic
                 .authenticationEntryPoint(customBasicAuthEntryPoint))

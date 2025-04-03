@@ -23,7 +23,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles("dev")
+@ActiveProfiles(value = "dev")
 class ArtifactServiceTest {
 
    @Mock
