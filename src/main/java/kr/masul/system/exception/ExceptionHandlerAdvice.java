@@ -1,8 +1,12 @@
 package kr.masul.system.exception;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.masul.system.Result;
 import kr.masul.system.StatusCode;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,6 +19,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +36,37 @@ public class ExceptionHandlerAdvice extends RuntimeException{
    @ResponseStatus(HttpStatus.NOT_FOUND)
    public Result artifactNotFoundExceptionHandler(ObjectNotFoundException ex) {
       return new Result(false, StatusCode.NOT_FOUND, ex.getMessage());
+   }
+
+   // rest client 관련 애러 처리(OpenAiChatClient에서 발생)
+   @ExceptionHandler({HttpClientErrorException.class, HttpServerErrorException.class})
+   public ResponseEntity<Result> noHandlerFoundExceptionHandler(HttpStatusCodeException ex) throws JsonProcessingException { // 일반적인 http error 처리
+
+      // 애러 메세지 포멧 정리하기
+      String exceptionMessage = ex.getMessage();
+
+      // Replace <EOL> with actual newlines.
+      exceptionMessage = exceptionMessage.replace("<EOL>", "\n");
+      // Extract the JSON part from the string.
+      String jsonPart = exceptionMessage.substring(exceptionMessage.indexOf("{"), exceptionMessage.lastIndexOf("}") + 1);
+      // Create an ObjectMapper instance.
+      ObjectMapper mapper = new ObjectMapper();
+      // Parse the JSON string to a JsonNode.
+      JsonNode rootNode = mapper.readTree(jsonPart);
+      // Extract the message.
+      String formattedExceptionMessage = rootNode.path("error").path("message").asText();
+
+
+      return new ResponseEntity<>(
+              new Result(false, ex.getStatusCode().value(),
+                      "OpenAi occur unauthorized, etc.", formattedExceptionMessage)
+              ,ex.getStatusCode());
+   }
+
+   @ExceptionHandler(RestClientException.class)
+   @ResponseStatus(HttpStatus.NOT_FOUND)
+   public Result restClientExceptionHandler(RestClientException ex) {
+      return new Result(false, StatusCode.NOT_FOUND,"The API endpoint not found", ex.getMessage());
    }
 
    @ExceptionHandler(MethodArgumentNotValidException.class)

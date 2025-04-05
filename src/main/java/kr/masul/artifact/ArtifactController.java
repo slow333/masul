@@ -1,5 +1,6 @@
 package kr.masul.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Valid;
 import kr.masul.system.Result;
@@ -56,5 +57,14 @@ public class ArtifactController {
     public Result delete(@PathVariable String artifactId) {
         artifactService.delete(artifactId);
         return new Result(true, StatusCode.SUCCESS, "Delete Success");
+    }
+
+    @GetMapping("/summary")
+    public Result summarizeArtifact() throws JsonProcessingException {
+        List<Artifact> artifacts = artifactService.findAll();
+        List<ArtifactDto> artifactDtos = artifacts.stream().map(artifactToDto::convert).toList();
+        String summarize = this.artifactService.summarize(artifactDtos);
+        return new Result(true, StatusCode.SUCCESS, "Summarize Success", summarize);
+
     }
 }

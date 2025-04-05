@@ -1,7 +1,17 @@
 package kr.masul.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import kr.masul.client.ai.chat.ChatClient;
+import kr.masul.client.ai.chat.dto.ChatRequest;
+import kr.masul.client.ai.chat.dto.ChatResponse;
+import kr.masul.client.ai.chat.dto.Choice;
+import kr.masul.client.ai.chat.dto.Message;
 import kr.masul.system.IdWorker;
+//import kr.masul.system.ModuleConfig;
 import kr.masul.system.exception.ObjectNotFoundException;
+import kr.masul.wizard.WizardDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,9 +20,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +41,8 @@ class ArtifactServiceTest {
    ArtifactRepository artifactRepository;
    @Mock
    IdWorker idWorker;
+   @Mock
+   ChatClient chatClient;
 
    @InjectMocks
    ArtifactService artifactService;
@@ -206,7 +219,37 @@ class ArtifactServiceTest {
       assertThat(thrown).isInstanceOf(ObjectNotFoundException.class)
               .hasMessage("Could not find artifact with id 12302");
       verify(artifactRepository, times(1)).findById("12302");
+   }
 
+   @Test
+   void testGenerateSuccess() throws JsonProcessingException {
+      // Given
+      WizardDto wizard = new WizardDto(6,"마술사",
+              LocalDateTime.of(1991, 2,4,2,2,1,333), 2);
+      List<ArtifactDto> artifactDtos = List.of(
+              new ArtifactDto("45601", "숨기", "기술", "imageUrl",
+                      LocalDateTime.of(1991, 2,4,2,2,1,333), wizard),
+              new ArtifactDto("45602", "size up", "bit size", "imageUrl",
+                      LocalDateTime.of(1991, 2,4,2,2,1,333), wizard)
+      );
+      // LocalDateTime이 있으면 pom.xml에 dependency 추가하고 regitsterModule() 추가해야함
+      ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+      String json = mapper.writeValueAsString(artifactDtos);
+
+      ChatRequest chatRequest = new ChatRequest("gpt-4", List.of(
+              new Message("system", "질문할 내용"),
+              new Message("user", json)
+              ));
+
+      ChatResponse chatResponse = new ChatResponse(List.of(
+              new Choice(0, new Message("assistant", "질문에 대한 답변"))));
+      given(chatClient.generate(chatRequest)).willReturn(chatResponse);
+      // When
+      String summary = artifactService.summarize(artifactDtos);
+
+      // Then
+      assertThat(summary).isEqualTo("질문에 대한 답변");
+      verify(chatClient, times(1)).generate(chatRequest);
    }
 }
 
