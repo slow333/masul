@@ -1,7 +1,14 @@
 package kr.masul.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
+import kr.masul.client.ai.chat.ChatClient;
+import kr.masul.client.ai.chat.dto.ChatRequest;
+import kr.masul.client.ai.chat.dto.ChatResponse;
+import kr.masul.client.ai.chat.dto.Message;
 import kr.masul.system.IdWorker;
 import kr.masul.system.exception.ObjectNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +23,7 @@ public class ArtifactService {
 
    private final ArtifactRepository artifactRepository;
    private final IdWorker idWorker;
+   private final ChatClient chatClient;
 
    public Artifact findById(String artifactId) {
       return artifactRepository
@@ -49,5 +57,18 @@ public class ArtifactService {
       Artifact artifact = artifactRepository.findById(artifactId)
               .orElseThrow(() -> new ObjectNotFoundException("artifact", artifactId));
       artifactRepository.deleteById(artifactId);
+   }
+   public String summarize(List<ArtifactDto> artifactDtos) throws JsonProcessingException {
+      // LocalDateTime이 있으면 pom.xml에 dependency 추가하고 regitsterModule() 추가해야함
+      ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+      String json = objectMapper.writeValueAsString(artifactDtos);
+
+      ChatRequest chatRequest = new ChatRequest("gpt-4", List.of(
+              new Message("system", "질문할 내용"),
+              new Message("user", json)
+      ));
+
+      ChatResponse generatedResponse = chatClient.generate(chatRequest);
+      return generatedResponse.choices().get(0).message().content();
    }
 }

@@ -1,5 +1,6 @@
 package kr.masul.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
@@ -244,6 +245,16 @@ class ArtifactControllerTest {
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find artifact with id 12302"))
               .andExpect(jsonPath("$.data").isEmpty());
-
+   }
+   @Test
+   void testSummarySuccess() throws Exception {
+      // Given
+      given(artifactService.summarize(Mockito.anyList())).willReturn("ai 결과");
+      // When and Then
+      mockMvc.perform(get(url+"/artifacts/summary").accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Summarize Success"))
+              .andExpect(jsonPath("$.data").value("ai 결과"));
    }
 }

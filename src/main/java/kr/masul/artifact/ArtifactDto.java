@@ -2,6 +2,8 @@ package kr.masul.artifact;
 
 import jakarta.validation.constraints.NotEmpty;
 import kr.masul.wizard.WizardDto;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
