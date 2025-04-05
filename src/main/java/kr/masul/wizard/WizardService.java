@@ -33,10 +33,12 @@ public class WizardService {
    public Wizard update(Integer wizardId, Wizard wizard) {
       Wizard oldWizard = wizardRepository.findById(wizardId)
               .orElseThrow(() -> new ObjectNotFoundException("wizard", wizardId));
+
       oldWizard.setId(wizard.getId());
       oldWizard.setName(wizard.getName());
       oldWizard.setBirthday(wizard.getBirthday());
       oldWizard.setArtifacts(wizard.getArtifacts());
+
       return oldWizard;
    }
 
@@ -58,6 +60,7 @@ public class WizardService {
       if (artifact.getOwner() != null) {
          artifact.getOwner().removeArtifact(artifact);
       }
+
       wizard.addArtifact(artifact);
    }
 }

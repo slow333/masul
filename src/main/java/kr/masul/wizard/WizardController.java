@@ -23,13 +23,17 @@ public class WizardController {
    public Result findById(@PathVariable Integer wizardId) {
       Wizard wizard = wizardService.findById(wizardId);
       WizardDto dto = wizardToDto.convert(wizard);
+
       return new Result(true, StatusCode.SUCCESS, "Find Success", dto);
    }
 
    @GetMapping
    public Result findAll() {
       List<Wizard> wizards = wizardService.findAll();
-      List<WizardDto> dtos = wizards.stream().map(wizardToDto::convert).toList();
+      List<WizardDto> dtos = wizards
+              .stream()
+              .map(wizardToDto::convert).toList();
+
       return new Result(true, StatusCode.SUCCESS, "Find all Success", dtos);
    }
 
@@ -38,14 +42,18 @@ public class WizardController {
       Wizard foundWizard = wizardToEntity.convert(wizardDto);
       Wizard convertWizard = wizardService.add(foundWizard);
       WizardDto dto = wizardToDto.convert(convertWizard);
+
       return new Result(true, StatusCode.SUCCESS, "Add Success", dto);
    }
 
    @PutMapping("/{wizardId}")
-   public Result update(@PathVariable Integer wizardId, @Valid @RequestBody WizardDto wizardDto) {
+   public Result update(@PathVariable Integer wizardId,
+                        @Valid @RequestBody WizardDto wizardDto) {
       Wizard convertWizard = wizardToEntity.convert(wizardDto);
+      assert convertWizard != null;
       Wizard wizard = wizardService.update(wizardId, convertWizard);
       WizardDto dto = wizardToDto.convert(wizard);
+
       return new Result(true, StatusCode.SUCCESS, "Update Success", dto);
    }
 
@@ -54,11 +62,35 @@ public class WizardController {
       wizardService.delete(wizardId);
       return new Result(true, StatusCode.SUCCESS, "Delete Success");
    }
+
    @PutMapping("/{wizardId}/artifacts/{artifactId}")
    public Result assignArtifact(@PathVariable Integer wizardId,
                                 @PathVariable String artifactId) {
       wizardService.assignArtifact(wizardId, artifactId);
+
       return new Result(true, StatusCode.SUCCESS, "Assign artifact Success");
    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
