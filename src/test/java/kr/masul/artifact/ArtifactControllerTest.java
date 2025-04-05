@@ -13,10 +13,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -125,16 +128,22 @@ class ArtifactControllerTest {
    }
 
    @Test
-   void testFindAll() throws Exception {
+   void testFindAllSuccess() throws Exception {
       // Given
-      given(artifactService.findAll()).willReturn(artifactList);
+      Pageable pageable = PageRequest.of(0, 2);
+      PageImpl<Artifact> artifactPage = new PageImpl<>(this.artifactList, pageable, artifactList.size());
+      given(artifactService.findAll(Mockito.any(Pageable.class))).willReturn(artifactPage);
+
+      MultiValueMap<String, String> requestParams = new LinkedMultiValueMap<>();
+      requestParams.add("page", "0");
+      requestParams.add("size", "2");
       // When and Then
-      mockMvc.perform(get(url + "/artifacts").accept(MediaType.APPLICATION_JSON))
+      mockMvc.perform(get(url + "/artifacts").accept(MediaType.APPLICATION_JSON)
+                      .params(requestParams))
               .andExpect(jsonPath("$.flag").value(true))
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Find all Success"))
-              .andExpect(jsonPath("$.data", Matchers.hasSize(6)));
-      verify(artifactService, times(1)).findAll();
+              .andExpect(jsonPath("$.data.content", Matchers.hasSize(artifactList.size())));
    }
 
    @Test

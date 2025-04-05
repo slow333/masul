@@ -41,7 +41,7 @@ class OpenAiChatClientTest {
    ChatRequest chatRequest;
    @BeforeEach
    void setUp() {
-      url = "https://api.poenai.com/v1/chat/completions";
+      url = "https://api.openai.com/v1/chat/completions";
       this.chatRequest = new ChatRequest("gpt-4", List.of(
               new Message("system", "답변을 위한 질문"),
               new Message("user", "답변을 위한 기초 자료들 ")
