@@ -13,13 +13,13 @@ import kr.masul.system.IdWorker;
 import kr.masul.system.exception.ObjectNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -63,7 +63,6 @@ public class ArtifactService {
    public void delete(String artifactId) {
       artifactRepository.findById(artifactId)
               .orElseThrow(() -> new ObjectNotFoundException("artifact", artifactId));
-
       artifactRepository.deleteById(artifactId);
    }
 
@@ -89,4 +88,46 @@ public class ArtifactService {
 //      pageable = PageRequest.of(0, 2, (Sort) sorts);
       return artifactRepository.findAll(pageable);
    }
+
+   public Page<Artifact> findByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
+      // spec을 위한 기본 설정
+      Specification<Artifact> spec = Specification.where(null);
+      // 찾는 값을 만들어 놓은 spec을 이용해서 찾기를 수행
+      if(StringUtils.hasLength(searchCriteria.get("id"))){
+         spec = spec.and(ArtifactSpecs.hasId(searchCriteria.get("id")));
+      }
+      if (StringUtils.hasLength(searchCriteria.get("name"))) {
+         spec = spec.and(ArtifactSpecs.containsName(searchCriteria.get("name")));
+      }
+      if (StringUtils.hasLength(searchCriteria.get("description"))) {
+         spec = spec.and(ArtifactSpecs.containsDescription(searchCriteria.get("description")));
+      }
+      if (StringUtils.hasLength(searchCriteria.get("ownerName"))) {
+         spec = spec.and(ArtifactSpecs.hasOwnerName(searchCriteria.get("ownerName")));
+      }
+      // 스팩과 페이지를 전달
+      return artifactRepository.findAll(spec, pageable);
+   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
