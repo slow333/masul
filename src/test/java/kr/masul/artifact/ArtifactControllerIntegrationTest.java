@@ -1,5 +1,6 @@
 package kr.masul.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
@@ -23,10 +24,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -170,6 +175,77 @@ class ArtifactControllerIntegrationTest {
               .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND))
               .andExpect(jsonPath("$.message").value("Could not find artifact with id 12309"))
               .andExpect(jsonPath("$.data").isEmpty());
+   }
 
+   @Test
+   void testFindArtifactByDescription() throws Exception {
+      // Given
+      Map<String, String> searchCriteria = new HashMap<>();
+      searchCriteria.put("description", "get");
+      String json = objectMapper.writeValueAsString(searchCriteria);
+
+      MultiValueMap<String, String> requestParams = new LinkedMultiValueMap<>();
+      requestParams.add("page", "0");
+      requestParams.add("size", "2");
+      requestParams.add("sort","name,asc");
+
+      // When and Then
+      mockMvc.perform(post(url + "/artifacts/search")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .params(requestParams)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Search Success"))
+              .andExpect(jsonPath("$.data.content", Matchers.hasSize(2)));
+   }
+   @Test
+   void testFindArtifactByNameAndDescription() throws Exception {
+      // Given
+      Map<String, String> searchCriteria = new HashMap<>();
+      searchCriteria.put("description", "get");
+      searchCriteria.put("name","second");
+      String json = objectMapper.writeValueAsString(searchCriteria);
+
+      MultiValueMap<String, String> requestParams = new LinkedMultiValueMap<>();
+      requestParams.add("page", "0");
+      requestParams.add("size", "2");
+      requestParams.add("sort","name,asc");
+
+      // When and Then
+      mockMvc.perform(post(url + "/artifacts/search")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .params(requestParams)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Search Success"))
+              .andExpect(jsonPath("$.data.content", Matchers.hasSize(1)));
+   }
+   @Test
+   void testFindArtifactByOwnerName() throws Exception {
+      // Given
+      Map<String, String> searchCriteria = new HashMap<>();
+      // 실행시에 id가  변경되어서 고정된 값은 안됨
+      searchCriteria.put("owner", "superMan");
+      String json = objectMapper.writeValueAsString(searchCriteria);
+
+      MultiValueMap<String, String> requestParams = new LinkedMultiValueMap<>();
+      requestParams.add("page", "0");
+      requestParams.add("size", "2");
+      requestParams.add("sort","name,asc");
+
+      // When and Then
+      mockMvc.perform(post(url + "/artifacts/search")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .params(requestParams)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Search Success"))
+              .andExpect(jsonPath("$.data.content", Matchers.hasSize(2)));
    }
 }

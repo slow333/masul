@@ -242,8 +242,8 @@ class ArtifactControllerTest {
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Delete Success"))
               .andExpect(jsonPath("$.data").isEmpty());
-
    }
+
    @Test
    void testDeleteNotFound() throws Exception {
       // Given
@@ -255,6 +255,7 @@ class ArtifactControllerTest {
               .andExpect(jsonPath("$.message").value("Could not find artifact with id 12302"))
               .andExpect(jsonPath("$.data").isEmpty());
    }
+
    @Test
    void testSummarySuccess() throws Exception {
       // Given

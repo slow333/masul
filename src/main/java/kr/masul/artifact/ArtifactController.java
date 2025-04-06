@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("${api.base-url}/artifacts")
@@ -40,18 +41,22 @@ public class ArtifactController {
     }
 
     /**
-     * spring.data.web.pageable.page-parameter = 페이지 사용자정의이름
-     * spring.data.web.pageable.size-parameter = size 사용자정의이름
+     * spring.data.web.pageable.page-parameter = 페이지 사용자정의이름(default; page)
+     * spring.data.web.pageable.size-parameter = size 사용자정의이름(default; size)
      * spring.data.web.sort.sort-parameter = sort 사용자정의이름
+     * 요청 ; http://localhost:80/api/v1/artifacts?size=1&page=2&sort=name,asc
      * @param pageable
      * @return
      */
     @GetMapping
     public Result findAll(
-            @PageableDefault(page = 0, size = 3, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
          // frontend에서 파라미터 변수로 page, size, sort를 받아서 처리할 때는 아래 처럼 해서 처리해야함
-        //        List<Sort.Order> sorts = List.of(Sort.Order.desc("name"));
-        //        pageable = PageRequest.of(0, 2, Sort.by(sorts));
+        // findAll(@RequestParam(default=0) int page,
+        //         @RequestParam(default=10) int size,
+        //         @RequestParam(name="sort") List<String> sort)
+         // List<Sort.Order> sorts = List.of(Sort.Order.desc("name"));
+         // pageable = PageRequest.of(0, 2, Sort.by(sorts));
 
         Page<Artifact> artifactPage = artifactService.findAll(pageable);
         Page<ArtifactDto> artifactDtoPage = artifactPage // Page streamable no need stream()
@@ -94,4 +99,38 @@ public class ArtifactController {
 
         return new Result(true, StatusCode.SUCCESS, "Summarize Success", summarize);
     }
+
+    @PostMapping("/search")
+    public Result findArtifactByCriteria(
+            @RequestBody Map<String, String> searchCriteria ,
+//            @PageableDefault(page = 0, size = 3, direction = Sort.Direction.ASC, sort = "name")
+            Pageable pageable){
+        Page<Artifact> artifactPage = artifactService.findByCriteria(searchCriteria, pageable);
+        Page<ArtifactDto> artifactDtoPage = artifactPage.map(artifactToDto::convert);
+
+        return new Result(true, StatusCode.SUCCESS, "Search Success", artifactDtoPage);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
