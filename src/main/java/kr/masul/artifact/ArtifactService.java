@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -104,6 +105,9 @@ public class ArtifactService {
       }
       if (StringUtils.hasLength(searchCriteria.get("ownerName"))) {
          spec = spec.and(ArtifactSpecs.hasOwnerName(searchCriteria.get("ownerName")));
+      }
+      if (StringUtils.hasLength(searchCriteria.get("start_date")) && StringUtils.hasLength(searchCriteria.get("end_date"))) {
+         spec = spec.and(ArtifactSpecs.betweenDateTime(searchCriteria.get("start_date"), searchCriteria.get("end_date")));
       }
       // 스팩과 페이지를 전달
       return artifactRepository.findAll(spec, pageable);
