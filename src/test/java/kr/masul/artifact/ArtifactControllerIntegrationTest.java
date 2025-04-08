@@ -178,6 +178,7 @@ class ArtifactControllerIntegrationTest {
    }
 
    @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
    void testFindArtifactByDescription() throws Exception {
       // Given
       Map<String, String> searchCriteria = new HashMap<>();

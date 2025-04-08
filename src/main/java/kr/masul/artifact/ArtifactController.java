@@ -3,19 +3,21 @@ package kr.masul.artifact;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Valid;
+import kr.masul.client.imageStorage.ImageStorageClient;
 import kr.masul.system.Result;
 import kr.masul.system.StatusCode;
 import kr.masul.system.converter.ArtifactToDto;
 import kr.masul.system.converter.ArtifactToEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +30,7 @@ public class ArtifactController {
     private final ArtifactToDto artifactToDto;
     private final ArtifactToEntity artifactToEntity;
     private final MeterRegistry meterRegistry; // actuator에 metircs 값으로 가져오기 위해 필요
+    private final ImageStorageClient imageStrorageClient;
 
     @GetMapping("/{artifactId}")
     public Result findById(@PathVariable String artifactId) {
@@ -109,6 +112,15 @@ public class ArtifactController {
         Page<ArtifactDto> artifactDtoPage = artifactPage.map(artifactToDto::convert);
 
         return new Result(true, StatusCode.SUCCESS, "Search Success", artifactDtoPage);
+    }
+
+    @PostMapping("/images")
+    public Result uploadImage(
+            @RequestParam String containerName, @RequestParam MultipartFile file) throws IOException {
+        try(InputStream inputStream = file.getInputStream()) {
+            String imageUrl = imageStrorageClient.uploadImage(containerName, file.getOriginalFilename(), inputStream, file.getSize());
+            return new Result(true, StatusCode.SUCCESS, "Upload Image Success", imageUrl);
+        }
     }
 }
 

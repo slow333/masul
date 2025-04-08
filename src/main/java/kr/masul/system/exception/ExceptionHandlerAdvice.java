@@ -117,6 +117,12 @@ public class ExceptionHandlerAdvice extends RuntimeException{
               "No Permission",ex.getMessage());
    }
 
+   @ExceptionHandler(CustomBlobStorageException.class)
+   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+   public Result customBlobStorageExceptionHandler(CustomBlobStorageException ex){
+      return new Result(false, StatusCode.INTERNAL_SERVER_ERROR, ex.getMessage(), ex.getCause().getMessage());
+   }
+
    @ExceptionHandler(Exception.class)
    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
    public Result otherExceptionHandler(Exception ex) {
