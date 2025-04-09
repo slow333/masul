@@ -36,6 +36,7 @@ public class JwtProvider {
               .issuedAt(issueAt)
               .expiresAt(issueAt.plus(duration, ChronoUnit.HOURS))
               .subject(authentication.getName())
+              .claim("userId", ((MaUserPrincipal)(authentication.getPrincipal())).getMaUser().getId())
               .claim("authorities", authorities)
               .build();
       return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

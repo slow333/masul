@@ -1,5 +1,6 @@
 package kr.masul.user;
 
+import kr.masul.security.MaUserPrincipal;
 import kr.masul.system.exception.ObjectNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -125,25 +130,86 @@ class UserServiceTest {
    }
 
    @Test
-   void testUpdateSuccess() {
+   void testUpdateWithAdminSuccess() {
       // Given
+      MaUser old = new MaUser();
+      old.setId(2);
+      old.setUsername("kim");
+      old.setPassword("123");
+      old.setRoles("user");
+      old.setEnabled(true);
+
       MaUser updated = new MaUser();
       updated.setId(2);
-      updated.setUsername("Tom");
-      updated.setRoles("admin");
+      updated.setUsername("Tom-update");
+      updated.setPassword("123");
+      updated.setRoles("admin user");
       updated.setEnabled(true);
 
-      given(userRepository.findById(2)).willReturn(Optional.of(updated));
-      given(userRepository.save(updated)).willReturn(updated);
+      given(userRepository.findById(2)).willReturn(Optional.of(old));
+      given(userRepository.save(old)).willReturn(updated);
+
+      // fake user for authentication
+      MaUser fuser = new MaUser();
+      fuser.setRoles("admin");
+      MaUserPrincipal userPrincipal = new MaUserPrincipal(fuser);
+
+      // Mock security context 를 생성해서 권한을 얻음
+      SecurityContext fakeUserContext = SecurityContextHolder.createEmptyContext();
+      fakeUserContext.setAuthentication(new UsernamePasswordAuthenticationToken(userPrincipal,
+              null, userPrincipal.getAuthorities()));
+      SecurityContextHolder.setContext(fakeUserContext);
       // When
       MaUser updatedUser = userService.update(2, updated);
       // Then
       assertThat(updatedUser.getId()).isEqualTo(2);
-      assertThat(updatedUser.getUsername()).isEqualTo("Tom");
-      assertThat(updatedUser.getRoles()).isEqualTo("admin");
+      assertThat(updatedUser.getUsername()).isEqualTo("Tom-update");
+      assertThat(updatedUser.getRoles()).isEqualTo("admin user");
       assertThat(updatedUser.isEnabled()).isEqualTo(true);
-      verify(userRepository, times(1)).save(updated);
+      verify(userRepository, times(1)).findById(2);
+      verify(userRepository, times(1)).save(old);
    }
+   @Test
+   void testUpdateByUserSuccess() {
+      // Given
+      MaUser old = new MaUser();
+      old.setId(2);
+      old.setUsername("kim");
+      old.setPassword("123");
+      old.setRoles("user");
+      old.setEnabled(true);
+
+      MaUser updated = new MaUser();
+      updated.setId(2);
+      updated.setUsername("Tom-update");
+      updated.setPassword("123");
+      updated.setRoles("admin user");
+      updated.setEnabled(true);
+
+      given(userRepository.findById(2)).willReturn(Optional.of(old));
+      given(userRepository.save(old)).willReturn(updated);
+
+      // fake user for authentication
+      MaUser fuser = new MaUser();
+      fuser.setRoles("user");
+      MaUserPrincipal userPrincipal = new MaUserPrincipal(fuser);
+
+      // Mock security context 를 생성해서 권한을 얻음
+      SecurityContext fakeUserContext = SecurityContextHolder.createEmptyContext();
+      fakeUserContext.setAuthentication(new UsernamePasswordAuthenticationToken(userPrincipal,
+              null, userPrincipal.getAuthorities()));
+      SecurityContextHolder.setContext(fakeUserContext);
+      // When
+      MaUser updatedUser = userService.update(2, updated);
+      // Then
+      assertThat(updatedUser.getId()).isEqualTo(2);
+      assertThat(updatedUser.getUsername()).isEqualTo("Tom-update");
+      assertThat(updatedUser.getRoles()).isEqualTo("user");
+      assertThat(updatedUser.isEnabled()).isEqualTo(true);
+      verify(userRepository, times(1)).findById(2);
+      verify(userRepository, times(1)).save(old);
+   }
+
    @Test
    void testUpdateFail() {
       // Given

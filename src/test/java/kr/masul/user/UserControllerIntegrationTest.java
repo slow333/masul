@@ -60,7 +60,7 @@ class UserControllerIntegrationTest {
 
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
-   void testFindByIdSuccess() throws Exception {
+   void testFindByIdWithAdminAccessingAllSuccess() throws Exception {
       mockMvc.perform(get(url + "/users/2").accept(MediaType.APPLICATION_JSON)
                       .header("Authorization", token))
               .andExpect(jsonPath("$.flag").value(true))
@@ -69,6 +69,44 @@ class UserControllerIntegrationTest {
               .andExpect(jsonPath("$.data.id").value(2))
               .andExpect(jsonPath("$.data.username").value("kim"))
               .andExpect(jsonPath("$.data.roles").value("user"));
+   }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testFindByIdWithUserAccessingOwnInfo() throws Exception {
+
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      mockMvc.perform(get(url + "/users/2").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", kimToken))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Find Success"))
+              .andExpect(jsonPath("$.data.id").value(2))
+              .andExpect(jsonPath("$.data.username").value("kim"))
+              .andExpect(jsonPath("$.data.roles").value("user"));
+   }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testFindByIdWithUserAccessingAnotherUserInfo() throws Exception {
+
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      mockMvc.perform(get(url + "/users/3").accept(MediaType.APPLICATION_JSON)
+                      .header("Authorization", kimToken))
+              .andExpect(jsonPath("$.flag").value(false))
+              .andExpect(jsonPath("$.code").value(StatusCode.FORBIDDEN))
+              .andExpect(jsonPath("$.message").value("No Permission"))
+              .andExpect(jsonPath("$.data").value("Access Denied"));
    }
 
    @Test
@@ -122,14 +160,13 @@ class UserControllerIntegrationTest {
 
    @Test
    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
-   void testUpdateSuccess() throws Exception {
+   void testUpdateWithAdminUpdateAllUsers() throws Exception {
       // Given
       MaUser update = new MaUser();
       update.setId(2);
-      update.setUsername("IronMan");
-      update.setPassword("123");
-      update.setEnabled(true);
-      update.setRoles("user");
+      update.setUsername("IronMan-update");
+      update.setEnabled(false);
+      update.setRoles("user admin");
 
       String json = objectMapper.writeValueAsString(update);
 
@@ -142,10 +179,70 @@ class UserControllerIntegrationTest {
               .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
               .andExpect(jsonPath("$.message").value("Update Success"))
               .andExpect(jsonPath("$.data.id").value(2))
-              .andExpect(jsonPath("$.data.username").value("IronMan"))
+              .andExpect(jsonPath("$.data.username").value("IronMan-update"))
+              .andExpect(jsonPath("$.data.roles").value("user admin"))
+              .andExpect(jsonPath("$.data.enabled").value(false));
+   }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testUpdateWithUserUpdateOwnInfo() throws Exception {
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      // Given
+      MaUser update = new MaUser();
+      update.setId(2);
+      update.setUsername("IronMan-update");
+      update.setEnabled(true);
+      update.setRoles("user");
+
+      String json = objectMapper.writeValueAsString(update);
+
+      // When and Then
+      mockMvc.perform(put(url + "/users/2")
+                      .accept(MediaType.APPLICATION_JSON).header("Authorization", kimToken)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(json))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Update Success"))
+              .andExpect(jsonPath("$.data.id").value(2))
+              .andExpect(jsonPath("$.data.username").value("IronMan-update"))
               .andExpect(jsonPath("$.data.roles").value("user"))
               .andExpect(jsonPath("$.data.enabled").value(true));
    }
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testUpdateWithUserUpdateAnotherUserInfo() throws Exception {
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      // Given
+      MaUser update = new MaUser();
+      update.setUsername("IronMan-update");
+      update.setEnabled(true);
+      update.setRoles("user");
+
+      String json = objectMapper.writeValueAsString(update);
+
+      // When and Then
+      mockMvc.perform(put(url + "/users/3")
+                      .accept(MediaType.APPLICATION_JSON).header("Authorization", kimToken)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(json))
+              .andExpect(jsonPath("$.flag").value(false))
+              .andExpect(jsonPath("$.code").value(StatusCode.FORBIDDEN))
+              .andExpect(jsonPath("$.message").value("No Permission"))
+              .andExpect(jsonPath("$.data").value("Access Denied"));
+   }
+
 
    @Test
    void testUpdateFail() throws Exception {
