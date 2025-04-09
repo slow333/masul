@@ -114,6 +114,7 @@ public class ArtifactController {
         return new Result(true, StatusCode.SUCCESS, "Search Success", artifactDtoPage);
     }
 
+    // azure 에 올리걸로 개정 안만들어서(돈 들어감) 동작안함
     @PostMapping("/images")
     public Result uploadImage(
             @RequestParam String containerName, @RequestParam MultipartFile file) throws IOException {
