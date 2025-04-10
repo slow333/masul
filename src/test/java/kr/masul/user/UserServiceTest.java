@@ -1,7 +1,9 @@
 package kr.masul.user;
 
+import kr.masul.client.redisCache.RedisCacheClient;
 import kr.masul.security.MaUserPrincipal;
 import kr.masul.system.exception.ObjectNotFoundException;
+import kr.masul.system.exception.PasswordChangeIllegalArgumentException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +26,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -34,6 +38,8 @@ class UserServiceTest {
    UserRepository userRepository;
    @Mock
    PasswordEncoder passwordEncoder;
+   @Mock
+   RedisCacheClient redisCacheClient;
 
    @InjectMocks
    UserService userService;
@@ -256,4 +262,97 @@ class UserServiceTest {
       // Then
       assertThat(thrown).isInstanceOf(ObjectNotFoundException.class).hasMessage("Could not find user with id 8");
    }
+
+   @Test
+   void testChangePasswordSuccess(){
+      // Given
+      MaUser maUser = new MaUser();
+      maUser.setId(2);
+      maUser.setPassword("encryptedOldPassword");
+
+      given(userRepository.findById(2)).willReturn(Optional.of(maUser));
+      given(passwordEncoder.matches(anyString(), anyString())).willReturn(true);
+      given(passwordEncoder.encode(anyString())).willReturn("encryptedNewPassword");
+      given(userRepository.save(maUser)).willReturn(maUser);
+      doNothing().when(redisCacheClient).delete(anyString());
+
+      // When
+      userService.changePassword(2, "unEncryptedOldPassword", "Abc12345", "Abc12345");
+      // Then
+      assertThat(maUser.getPassword()).isEqualTo("encryptedNewPassword");
+      verify(userRepository, times(1)).save(maUser);
+   }
+   @Test
+   void testChangePasswordOldPasswordInCorrect(){
+      // Given
+      MaUser maUser = new MaUser();
+      maUser.setId(2);
+      maUser.setPassword("encryptedOldPassword");
+
+      given(userRepository.findById(2)).willReturn(Optional.of(maUser));
+      given(passwordEncoder.matches(anyString(), anyString())).willReturn(false);
+
+      // When
+      Exception exception = assertThrows(BadCredentialsException.class, () ->{
+         userService.changePassword(
+                 2, "wrongPassword", "Abc12345", "Abc12345");
+      });
+      // Then
+      assertThat(exception).isInstanceOf(BadCredentialsException.class).hasMessage("Old password is not correct.");
+   }
+   @Test
+   void testChangePasswordNewAndConfirmPasswordNotMatch(){
+      // Given
+      MaUser maUser = new MaUser();
+      maUser.setId(2);
+      maUser.setPassword("encryptedOldPassword");
+
+      given(userRepository.findById(2)).willReturn(Optional.of(maUser));
+      // old password 맞는지 확인
+      given(passwordEncoder.matches(anyString(), anyString())).willReturn(true);
+      // When
+      Exception exception = assertThrows(PasswordChangeIllegalArgumentException.class, () ->{
+         userService.changePassword(
+                 2, "unEncryptedOldPassword", "Abc12345", "Abc1234577");
+      });
+      // Then
+      assertThat(exception).isInstanceOf(PasswordChangeIllegalArgumentException.class)
+              .hasMessage("Old password and new password dose not match.");
+   }
+   @Test
+   void testChangePasswordNewDoesNotConfirmPolicy() {
+      // Given
+      MaUser maUser = new MaUser();
+      maUser.setId(2);
+      maUser.setPassword("encryptedOldPassword");
+
+      given(userRepository.findById(2)).willReturn(Optional.of(maUser));
+      // old password 맞는지 확인
+      given(passwordEncoder.matches(anyString(), anyString())).willReturn(true);
+      // 새암호 암호화
+//      given(passwordEncoder.encode(anyString())).willReturn("encryptedNewPassword");
+//      given(userRepository.save(maUser)).willReturn(maUser);
+      // When
+      Exception exception = assertThrows(PasswordChangeIllegalArgumentException.class, () ->{
+         userService.changePassword(
+                 2, "unEncryptedOldPassword", "short", "short");
+      });
+      // Then
+      assertThat(exception).isInstanceOf(PasswordChangeIllegalArgumentException.class)
+              .hasMessage("New password does not conform password policy.");
+   }
+
+/*   @Test
+   void testChangePasswordUserNotFound() {
+      // Given
+      given(userRepository.findById(9)).willReturn(Optional.empty());
+      // When
+      Exception exception = assertThrows(ObjectNotFoundException.class, () ->{
+         userService.changePassword(
+                 9, "unEncryptedOldPassword", "short", "short");
+      });
+      // Then
+      assertThat(exception).isInstanceOf(ObjectNotFoundException.class)
+              .hasMessage("Could not find user with id 9");
+   }*/
 }

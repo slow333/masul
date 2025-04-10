@@ -123,6 +123,13 @@ public class ExceptionHandlerAdvice extends RuntimeException{
       return new Result(false, StatusCode.INTERNAL_SERVER_ERROR, ex.getMessage(), ex.getCause().getMessage());
    }
 
+   @ExceptionHandler(PasswordChangeIllegalArgumentException.class)
+   @ResponseStatus(HttpStatus.BAD_REQUEST)
+   public Result passwordChangeIllegalArgumentExceptionHandler(PasswordChangeIllegalArgumentException ex){
+      return new Result(false, StatusCode.BAD_REQUEST, ex.getMessage());
+   }
+
+
    @ExceptionHandler(Exception.class)
    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
    public Result otherExceptionHandler(Exception ex) {
