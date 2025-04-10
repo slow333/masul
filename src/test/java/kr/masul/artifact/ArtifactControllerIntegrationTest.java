@@ -2,6 +2,7 @@ package kr.masul.artifact;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redis.testcontainers.RedisContainer;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
 import netscape.javascript.JSObject;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.userdetails.User;
@@ -26,6 +28,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -43,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
+@Testcontainers
 @AutoConfigureMockMvc
 @DisplayName("Artifact Integration test")
 @ActiveProfiles(value = "dev")
@@ -56,6 +62,12 @@ class ArtifactControllerIntegrationTest {
 
    @Value("${api.base-url}")
    String url;
+
+   // Redis docker container 실행 없이 자체 시험을 위해 필요
+   @Container
+   @ServiceConnection // 원격 서비스에 접근하기 위해 필요
+   // (redisCacheClient에 접속해서 독커를 DockerDetails>RedisConectionDetails를 가상화함)
+   static RedisContainer redisContainer = new RedisContainer(DockerImageName.parse("redis:6.2.6"));
 
    String token;
    @BeforeEach

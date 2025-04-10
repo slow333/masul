@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,5 +53,15 @@ public class UserController {
    public Result delete(@PathVariable Integer userId) {
       userService.delete(userId);
       return new Result(true, StatusCode.SUCCESS, "Delete Success");
+   }
+
+   @PatchMapping("/{userId}/password")
+   public Result changePassword(@PathVariable Integer userId,
+                                @RequestBody Map<String, String> requestMap) {
+      String oldPassword = requestMap.get("oldPassword");
+      String newPassword = requestMap.get("newPassword");
+      String confirmNewPassword = requestMap.get("confirmNewPassword");
+      userService.changePassword(userId, oldPassword, newPassword, confirmNewPassword);
+      return new Result(true, StatusCode.SUCCESS, "Change Password Success");
    }
 }

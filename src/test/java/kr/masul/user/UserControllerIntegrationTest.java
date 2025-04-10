@@ -1,6 +1,7 @@
 package kr.masul.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redis.testcontainers.RedisContainer;
 import kr.masul.system.StatusCode;
 import kr.masul.system.exception.ObjectNotFoundException;
 import org.hamcrest.Matchers;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -20,9 +22,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -34,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
+@Testcontainers
 @AutoConfigureMockMvc
 @DisplayName("User Integration test")
 @ActiveProfiles(value = "dev")
@@ -47,6 +55,12 @@ class UserControllerIntegrationTest {
 
    @Value("${api.base-url}")
    String url;
+
+   // Redis docker container 실행 없이 자체 시험을 위해 필요
+   @Container
+   @ServiceConnection // 원격 서비스에 접근하기 위해 필요
+   // (redisCacheClient에 접속해서 독커를 DockerDetails>RedisConectionDetails를 가상화함)
+   static RedisContainer redisContainer = new RedisContainer(DockerImageName.parse("redis:6.2.6"));
 
    String token;
    @BeforeEach
@@ -286,4 +300,76 @@ class UserControllerIntegrationTest {
               .andExpect(jsonPath("$.message").value("Could not find user with id 8"))
               .andExpect(jsonPath("$.data").isEmpty());
    }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testPasswordChangeWithUserOwn() throws Exception {
+      //given
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      Map<String, String> passwordMap = new HashMap<>();
+      passwordMap.put("oldPassword", "123");
+      passwordMap.put("newPassword", "Abc12345");
+      passwordMap.put("confirmNewPassword", "Abc12345");
+      String json = objectMapper.writeValueAsString(passwordMap);
+
+      mockMvc.perform(patch(url + "/users/2/password").contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .header("Authorization", kimToken)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Change Password Success"));
+   }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testPasswordChangeWithAdminPrivilege() throws Exception {
+      //given
+      Map<String, String> passwordMap = new HashMap<>();
+      passwordMap.put("oldPassword", "123");
+      passwordMap.put("newPassword", "Abc12345");
+      passwordMap.put("confirmNewPassword", "Abc12345");
+      String json = objectMapper.writeValueAsString(passwordMap);
+
+      mockMvc.perform(patch(url + "/users/2/password").contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .header("Authorization", token)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(true))
+              .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+              .andExpect(jsonPath("$.message").value("Change Password Success"));
+   }
+
+   @Test
+   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+   void testPasswordChangeWithNotMatchNewAndConfirm() throws Exception {
+      //given
+      ResultActions admin = mockMvc.perform(post(url + "/users/login").with(httpBasic("kim", "123")));
+      MvcResult mvcResult = admin.andDo(print()).andReturn();
+      String contentAsString = mvcResult.getResponse().getContentAsString();
+      JSONObject jsonObject = new JSONObject(contentAsString);
+      String kimToken = "Bearer " + jsonObject.getJSONObject("data").getString("token");
+
+      Map<String, String> passwordMap = new HashMap<>();
+      passwordMap.put("oldPassword", "123");
+      passwordMap.put("newPassword", "Abc12345");
+      passwordMap.put("confirmNewPassword", "Abc123456");
+      String json = objectMapper.writeValueAsString(passwordMap);
+
+      mockMvc.perform(patch(url + "/users/2/password").contentType(MediaType.APPLICATION_JSON)
+                      .content(json)
+                      .header("Authorization", kimToken)
+                      .accept(MediaType.APPLICATION_JSON))
+              .andExpect(jsonPath("$.flag").value(false))
+              .andExpect(jsonPath("$.code").value(StatusCode.BAD_REQUEST))
+              .andExpect(jsonPath("$.message").value("Old password and new password dose not match."));
+   }
+
+
+
 }

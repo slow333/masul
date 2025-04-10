@@ -71,6 +71,7 @@ public class SecurityConfiguration {
            .requestMatchers(HttpMethod.POST, url + "/users").hasAuthority("ROLE_admin")
            .requestMatchers(HttpMethod.PUT, url + "/users/**").access(this.userRequestAuthorizationManager)
            .requestMatchers(HttpMethod.DELETE, url + "/users/**").hasAuthority("ROLE_admin")
+           .requestMatchers(HttpMethod.PATCH, url + "/users/**").access(this.userRequestAuthorizationManager)
            .requestMatchers(EndpointRequest.to("health","info","prometheus")).permitAll()
            .requestMatchers(EndpointRequest.toAnyEndpoint().excluding("health","info","prometheus")).hasAuthority("ROLE_admin")
            .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
